@@ -18,18 +18,29 @@ def receive_messages(sock):
         except OSError:
             break
 
+    sock.close()
+
 def send_messages(sock):
     print("Введите сообщение (или 'exit' для выхода):")
     while True:
         try:
             msg = input("> ")
             if msg.lower() == 'exit':
-                sock.send('exit'.encode('utf-8'))
+                try:
+                    sock.send('exit'.encode('utf-8'))
+                except (BrokenPipeError, OSError):
+                    pass
                 break
             sock.send(msg.encode('utf-8'))
+        except (BrokenPipeError, ConnectionResetError, OSError):  #
+            print("\nСоединение потеряно, невозможно отправить сообщение.")
+            break
         except (EOFError, KeyboardInterrupt):
             print("\nЗавершение работы...")
-            sock.send('exit'.encode('utf-8'))
+            try:
+                sock.send('exit'.encode('utf-8'))
+            except:
+                pass
             break
 
 # Основной код клиента
@@ -46,5 +57,8 @@ try:
 except ConnectionRefusedError:
     print("Не удалось подключиться к серверу. Убедитесь, что сервер запущен.")
 finally:
-    client_sock.close()
+    try:
+        client_sock.close()
+    except:
+        pass
     print("Соединение закрыто.")
